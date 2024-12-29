@@ -1,10 +1,11 @@
-from finitefield_functions import isPrime
+from finitefield_functions import ALWAYS_REDUCE, isPrime
 from IntegersModP import IntegersMod
 from irred_poly_finder import modulo_method
 
 class FiniteField:
-    """The finite field with p^n elements, for some prime p
+    """The finite field with p^n elements, where p is a prime
     """
+
     def __init__(self, base_prime, degree):
         """
         Creates the finite field with base_prime**degree elements
@@ -20,6 +21,9 @@ class FiniteField:
         return f"F({self.characteristic}^{self.degree})"
 
     def irred_poly(self):
+        """Returns the polynomial used to define the relation between
+        field elements
+        """
         prime = self.characteristic
         irred_polys = modulo_method(self.degree, IntegersMod(prime))
         return irred_polys[-1]
@@ -46,21 +50,25 @@ class FieldElement(FiniteField):
     """
     Field elements are regarded as vectors over the base field F_{base_prime}
     """
+
     def __init__(self, base_prime, degree, vector):
-        if not all([isinstance(i, int) for i in vector]):
-            raise ValueError("All entries in vector must be integers")
         super().__init__(base_prime, degree)
+
+        if isinstance(vector[0], int):
+            base_field = IntegersMod(base_prime)
+            vector = [base_field(i) for i in vector]
         self.vector = vector
 
     def __str__(self):
+        self.reduce_element()
         def to_superscript(n):
             superscript_digits = '⁰¹²³⁴⁵⁶⁷⁸⁹'
             return ''.join(superscript_digits[int(digit)] for digit in str(n))
         
-        if all(coef == 0 for coef in self.vector):
+        if self == super().zero():
             return "0"
         
-        coeffs = self.vector
+        coeffs = [i.value if i!=0 else 0 for i in self.vector]
         root_terms = []
         for degree in range(len(coeffs)):
             coef = coeffs[degree]
@@ -96,7 +104,7 @@ class FieldElement(FiniteField):
         _compare_class(self, other)
         length = max(self.len(), other.len())
         return FieldElement(self.characteristic, self.degree,
-                            [self[i] + other[i] for i in range(length)])
+                [(self[i] + other[i]) for i in range(length)]).reduce_element()
     
     def __radd__(self, other):
         return self.__add__(other)
@@ -107,7 +115,7 @@ class FieldElement(FiniteField):
         _compare_class(self, other)
         length = max(self.len(), other.len())
         return FieldElement(self.characteristic, self.degree,
-                            [self[i] - other[i] for i in range(length)])
+                [(self[i] - other[i]) for i in range(length)]).reduce_element()
     
     def __mul__(self, other):
         if other == 0:
@@ -115,21 +123,21 @@ class FieldElement(FiniteField):
         if other == 1:
             return self
         _compare_class(self, other)
-        deg = self.degree
-        tmp_vector = [0]*(2*deg)
-        vec1 = self.reduce_element()
-        vec2 = other.reduce_element()
-        for i in range(deg):
-            for j in range(deg):
-                tmp_vector[i + j] += vec1[i]*vec2[j]
-        
-        vector = FieldElement(self.characteristic, self.degree, tmp_vector)
-        return vector.reduce_element()
+        tmp_vector = [0]*(self.len()+other.len())
+        self.reduce_element()
+        other.reduce_element()
+        for i in range(self.len()):
+            for j in range(other.len()):
+                tmp_vector[i+j] += self[i]*other[j]
+        return FieldElement(self.characteristic, self.degree,
+                            tmp_vector).reduce_element()
     
     def __rmul__(self, other):
         return self.__mul__(other)
     
     def inverse(self):
+        """Returns the inverse of the field element
+        """
         if self == 0:
             raise ZeroDivisionError("Zero has no inverse")
         pass
@@ -140,35 +148,40 @@ class FieldElement(FiniteField):
 
     def __neg__(self):
         return FieldElement(self.characteristic, self.degree,
-                            [-i % self.characteristic for i in self.vector])
+                            [-i for i in self.vector])
 
     def __eq__(self, other):
         if other == 0:
             return all(i == 0 for i in self.vector)
-        _compare_class(self, other)
+        if not isinstance(other, FieldElement):
+            return False
         return (self - other).reduce_element() == 0
     
     def len(self):
+        """Returns the length of the vector representation
+        """
         return len(self.vector)
     
-    def reduce_element(self):
+    def reduce_element(self, reduce_status = ALWAYS_REDUCE):
         """Reduces the element to a representaion of length less than the
-        degree of the field
+        degree of the field if the variable ALWAYS_REDUCE is True
         """
+        if not reduce_status:
+            return self
+        
         vector_repr = self.vector
         deg = self.degree
         irred_poly = super().irred_poly()
 
-        algebraic_element = [(-i).value for i in irred_poly]
+        algebraic_element = [-i for i in irred_poly]
         del algebraic_element[-1]
 
         while len(vector_repr) > deg:
             for i in range(deg):
                 vector_repr[len(vector_repr)-1-deg+i] += \
-                vector_repr[-1]*algebraic_element[i]
+                            vector_repr[-1]*algebraic_element[i]
             del vector_repr[-1]
-        return FieldElement(self.characteristic, deg,
-                            [i % self.characteristic for i in vector_repr])
+        return FieldElement(self.characteristic, deg, vector_repr)
 
 
 def _compare_class(field_element_1: FieldElement,

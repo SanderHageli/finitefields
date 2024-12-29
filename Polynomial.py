@@ -26,7 +26,7 @@ class Polynomial:
         
         if isinstance(self.coeffs[0], IntegersMod):
             coeffs = [coef.value for coef in self.coeffs]
-            mod_str = f" (mod {self.coeffs[0].prime})"
+            mod_str = f" (mod {self.coeffs[0].characteristic})"
         else:
             coeffs = self.coeffs
             mod_str = ""

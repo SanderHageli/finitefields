@@ -3,7 +3,7 @@ from finitefield_functions import isPrime
 class IntegersMod:
     """Implementation of the field of integers modulo p, for some prime p
     """
-
+    
     def __init__(self, prime):
         if not isPrime(prime):
             raise ValueError(f"Base number {prime} must be prime")
@@ -11,6 +11,9 @@ class IntegersMod:
     
     def __call__(self,value):
         return IntegersModElement(value, self.characteristic)
+    
+    def __iter__(self):
+        return iter(self.elements())
 
     def elements(self):
         """Returns a list of all field elements
@@ -31,7 +34,7 @@ class IntegersMod:
 class IntegersModElement(IntegersMod):
     """Field elements of the field of integers modulo p
     """
-
+    
     def __init__(self, value, prime):
         super().__init__(prime)
         self.value = value % prime
@@ -73,7 +76,7 @@ class IntegersModElement(IntegersMod):
     
     def __mul__(self, other):
         if other == 0:
-            return IntegersModElement(0, self.characteristic)
+            return super().zero()
         if other == 1:
             return self
         _compare_class(self, other)
@@ -115,6 +118,6 @@ def _compare_class(element1: IntegersModElement,
                    element2: IntegersModElement):
     if not (isinstance(element1, IntegersModElement) and
             isinstance(element2, IntegersModElement)):
-        raise TypeError(f"Both must be IntegersModPElement type")
+        raise TypeError(f"Both must be IntegersModElement type")
     if element1.characteristic != element2.characteristic:
         raise ValueError("Primes must be equal")

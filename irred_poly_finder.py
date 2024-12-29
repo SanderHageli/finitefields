@@ -39,7 +39,7 @@ def write_poly_to_file(polys, file_folder = IRREDUCIBLE_POLYS_PATH):
             with open(path, "a") as file:
                 file.write(poly_line)
     else:
-        with open(path, "w") as file:
+        with open(path, "x") as file:
             file.write(poly_line)
 
 def read_poly_from_file(prime, degree, file_folder = IRREDUCIBLE_POLYS_PATH):
