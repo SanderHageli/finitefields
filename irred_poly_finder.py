@@ -39,6 +39,8 @@ def write_poly_to_file(polys, file_folder = IRREDUCIBLE_POLYS_PATH):
             with open(path, "a") as file:
                 file.write(poly_line)
     else:
+        if not os.path.exists(f"./{file_folder}"):
+            os.makedirs(f"./{file_folder}")
         with open(path, "x") as file:
             file.write(poly_line)
 

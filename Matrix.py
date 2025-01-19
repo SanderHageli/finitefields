@@ -1,8 +1,10 @@
 from random import randint
 
+from IntegersModP import IntegersMod
+
 class Matrix:
-    """Matrix objects. Compatible with all classes that have defined addition,
-      substraction, multipliaciton and division methods.
+    """Matrix objects. Compatible with all classes that have defined
+    addition, substraction, multipliaciton and division methods.
     """
 
     def __init__(self, coeffs: list):
@@ -16,8 +18,8 @@ class Matrix:
     def __str__(self):
         rows_str = []
         for row in self.coeffs:
-            rows_str.append("[" +" ".join(f'{item:5}' for item in row) +
-                            "]")
+            rows_str.append("[" +" ".join(f'{item:5}' for item in row)
+                            + "]") # needs improvement
         return "\n".join(rows_str)
     
     def __repr__(self):
@@ -183,13 +185,21 @@ class Matrix:
 
         return A.transpose()[-1][::-1]
     
-def identity_matrix(n: int) -> Matrix:
-    """Returns n by n identity matrix
+def identity_matrix(n: int, characteristic = 0) -> Matrix:
+    """Returns n by n identity matrix.
+
+    If any non-zero characteristic is defined, the ones will be
+    IntegersMod elements with respect to the defined characteristic
     """
     tmp_matrix = []
+    if characteristic == 0:
+        identity = 1
+    else:
+        identity = IntegersMod(characteristic).identity()
+
     for i in range(n):
         row = [0]*n
-        row[i] = 1
+        row[i] = identity
         tmp_matrix.append(row)
     return Matrix(tmp_matrix)
 

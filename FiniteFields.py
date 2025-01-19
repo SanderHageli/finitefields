@@ -1,6 +1,7 @@
 from finitefield_functions import ALWAYS_REDUCE, isPrime
 from IntegersModP import IntegersMod
 from irred_poly_finder import modulo_method
+from Matrix import identity_matrix, Matrix
 
 class FiniteField:
     """The finite field with p^n elements, where p is a prime
@@ -104,7 +105,8 @@ class FieldElement(FiniteField):
         _compare_class(self, other)
         length = max(self.len(), other.len())
         return FieldElement(self.characteristic, self.degree,
-                [(self[i] + other[i]) for i in range(length)]).reduce_element()
+                [(self[i] + other[i]) for i in range(length)]
+                ).reduce_element()
     
     def __radd__(self, other):
         return self.__add__(other)
@@ -115,7 +117,8 @@ class FieldElement(FiniteField):
         _compare_class(self, other)
         length = max(self.len(), other.len())
         return FieldElement(self.characteristic, self.degree,
-                [(self[i] - other[i]) for i in range(length)]).reduce_element()
+                [(self[i] - other[i]) for i in range(length)]
+                ).reduce_element()
     
     def __mul__(self, other):
         if other == 0:
@@ -140,7 +143,18 @@ class FieldElement(FiniteField):
         """
         if self == 0:
             raise ZeroDivisionError("Zero has no inverse")
-        pass
+        
+        char = self.characteristic
+        deg = self.degree
+        field = FiniteField(char, deg)
+        transition_matrix_prod = 1
+        for i in range(deg-1):
+            transition_matrix_prod = _transition_matrix(i, field) \
+                                    * transition_matrix_prod
+        TA = (_element_to_matrix(self)*transition_matrix_prod).transpose()
+        return field(TA.solve([IntegersMod(char).identity(), 
+                               IntegersMod(char).zero(),
+                               IntegersMod(char).zero()]))
 
     def __truediv__(self, other):
         _compare_class(self, other)
@@ -192,3 +206,19 @@ def _compare_class(field_element_1: FieldElement,
     if field_element_1.characteristic != field_element_2.characteristic \
         or field_element_1.degree != field_element_2.degree:
         raise ValueError("Elements are from different fields")
+    
+def _transition_matrix(i: int, field: FiniteField):
+    tmp_matrix = []
+    for row in identity_matrix(field.degree+i, field.characteristic):
+        tmp_matrix.append(row)
+    last_row = [0]*i + [-j for j in field.irred_poly().coeffs[:-1]]
+    tmp_matrix.append(last_row)
+    return Matrix(tmp_matrix)
+
+def _element_to_matrix(field_element: FieldElement):
+    field_element.reduce_element(True)
+    coeffs = field_element.vector
+    tmp_matrix = []
+    for i in range(field_element.degree):
+        tmp_matrix.append([0]*i + coeffs + [0]*(field_element.degree-1-i))
+    return Matrix(tmp_matrix)
